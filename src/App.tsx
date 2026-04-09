@@ -5,7 +5,7 @@ import { initAudio, playPianoNote, playChord, playMelody, playCorrect, playIncor
 import { Staff } from './components/Staff';
 import { TREBLE_NOTES, BASS_NOTES, ACCIDENTALS, INTERVALS, CHORDS, CADENCES, SIGNS, MELODIES, NoteDef, ALL_NOTES, RHYTHM_PATTERNS, INSTRUMENTS_DATA } from './data/modules';
 
-type View = 'home' | 'treble' | 'bass' | 'accidentals' | 'intervals' | 'chords' | 'cadences' | 'dictation_sound' | 'dictation_melody' | 'signs' | 'rhythm' | 'compose' | 'instruments' | 'results';
+type View = 'home' | 'treble' | 'bass' | 'accidentals' | 'intervals' | 'chords' | 'cadences' | 'dictation_sound' | 'dictation_melody' | 'signs' | 'rhythm' | 'compose' | 'instruments' | 'quiz' | 'results';
 
 export default function App() {
   const [view, setView] = useState<View>('home');
@@ -116,17 +116,22 @@ export default function App() {
     else if (view === 'dictation_melody') max = MELODIES.length;
     else if (view === 'rhythm') max = RHYTHM_PATTERNS.length;
     else if (view === 'instruments') max = INSTRUMENTS_DATA.length;
+    else if (view === 'quiz') max = quizQuestions.length;
 
     if (currentIndex < max - 1) {
       setCurrentIndex(i => i + 1);
       resetState();
     } else {
       // Mark as completed and show trophy if first time
-      if (!progress[view]) {
+      if (!progress[view] && view !== 'quiz' && view !== 'results') {
         setShowTrophy(view);
       }
-      setProgress(p => ({ ...p, [view]: true }));
-      setView('home');
+      if (view === 'quiz') {
+        setView('results');
+      } else {
+        setProgress(p => ({ ...p, [view]: true }));
+        setView('home');
+      }
     }
   };
 
@@ -227,6 +232,38 @@ export default function App() {
               {progress['instruments'] && <Check className="absolute top-2 right-2 w-6 h-6 text-white bg-emerald-500 rounded-full p-1" />}
               <Volume2 className="w-8 h-8 mb-2" />
               <span className="font-semibold">Instrumentos</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-xl font-bold text-slate-500 mb-4 text-left border-b-2 border-slate-200 pb-2">Desafio Final</h3>
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <button 
+              onClick={() => {
+                const totalQuestions = 10;
+                const pool = [
+                  ...TREBLE_NOTES.map(n => ({ ...n, type: 'note', clef: 'treble' })),
+                  ...BASS_NOTES.map(n => ({ ...n, type: 'note', clef: 'bass' })),
+                  ...INTERVALS.map(i => ({ ...i, type: 'multiple', category: 'Intervalo' })),
+                  ...CHORDS.map(c => ({ ...c, type: 'multiple', category: 'Acorde' })),
+                  ...INSTRUMENTS_DATA.map(i => ({ ...i, type: 'instrument' }))
+                ];
+                const selected = [];
+                for(let i=0; i<totalQuestions; i++) {
+                  selected.push(pool[Math.floor(Math.random() * pool.length)]);
+                }
+                setQuizQuestions(selected);
+                setScore(0);
+                startModule('quiz');
+              }} 
+              className="btn-module bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 !flex-row gap-4 !p-6"
+            >
+              <Star className="w-8 h-8 text-amber-300 fill-amber-300" />
+              <div className="text-left">
+                <span className="font-semibold text-xl block">Super Teste de Conhecimentos</span>
+                <span className="text-sm opacity-90">10 perguntas aleatórias de todos os níveis!</span>
+              </div>
             </button>
           </div>
         </div>
@@ -724,6 +761,123 @@ export default function App() {
     );
   };
 
+  const renderQuiz = () => {
+    const q = quizQuestions[currentIndex];
+    if (!q) return null;
+
+    return (
+      <div className="w-full flex flex-col items-center">
+        <div className="w-full flex justify-between items-center mb-6">
+          <div className="flex items-center gap-2">
+            <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
+            <span className="font-bold text-slate-700">Pergunta {currentIndex + 1} de {quizQuestions.length}</span>
+          </div>
+          <div className="bg-indigo-100 px-4 py-1 rounded-full text-indigo-700 font-bold">
+            Pontos: {score}
+          </div>
+        </div>
+
+        {q.type === 'note' && (
+          <div className="w-full flex flex-col items-center">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 font-sans">Coloca a nota: <span className="text-indigo-600">{q.name}</span></h3>
+            <div className="w-full relative mb-8">
+              <Staff clef={q.clef} notes={[{ y: userY, accidental: userAccidental }]} />
+              <AnimatePresence>{feedback && (
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+                  {feedback === 'correct' ? <Check className="w-20 h-20 text-emerald-500 bg-white rounded-full shadow-lg" /> : <X className="w-20 h-20 text-rose-500 bg-white rounded-full shadow-lg" />}
+                </motion.div>
+              )}</AnimatePresence>
+            </div>
+            <div className="flex flex-col gap-4 w-full max-w-xs">
+              <div className="flex gap-2">
+                <button onClick={() => setUserY(y => Math.max(-20, y - 10))} className="flex-1 p-4 bg-white border-2 border-slate-200 rounded-2xl shadow-sm hover:bg-slate-50"><ArrowUp /></button>
+                <button onClick={() => setUserY(y => Math.min(140, y + 10))} className="flex-1 p-4 bg-white border-2 border-slate-200 rounded-2xl shadow-sm hover:bg-slate-50"><ArrowDown /></button>
+              </div>
+              <button onClick={() => handleVerifyNotePlacement(q)} disabled={feedback !== null} className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-bold text-lg shadow-md hover:bg-emerald-600 shadow-emerald-200">Verificar</button>
+            </div>
+          </div>
+        )}
+
+        {q.type === 'multiple' && (
+          <div className="w-full flex flex-col items-center">
+            <h3 className="text-xl font-semibold text-slate-800 mb-6">{q.category}: O que vês/ouves?</h3>
+            <div className="w-full relative mb-8">
+              <Staff clef="treble" notes={q.notes} />
+              <button onClick={() => playChord(q.freqs)} className="absolute -bottom-4 right-4 w-12 h-12 bg-indigo-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-600 active:scale-95 transition-all"><Volume2 /></button>
+              <AnimatePresence>{feedback && (
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+                  {feedback === 'correct' ? <Check className="w-20 h-20 text-emerald-500 bg-white rounded-full shadow-lg" /> : <X className="w-20 h-20 text-rose-500 bg-white rounded-full shadow-lg" />}
+                </motion.div>
+              )}</AnimatePresence>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2">
+              {(q.category === 'Intervalo' ? INTERVALS : CHORDS).map(opt => (
+                <button key={opt.name} onClick={() => handleMultipleChoice(opt.name, q.name, q)} disabled={feedback !== null} className="px-6 py-3 bg-white border-2 border-slate-200 rounded-xl font-bold text-slate-700 hover:border-indigo-500 hover:text-indigo-600 transition-all">
+                  {opt.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {q.type === 'instrument' && (
+          <div className="w-full flex flex-col items-center">
+            <h3 className="text-xl font-semibold text-slate-800 mb-8">Identifica o instrumento</h3>
+            <button onClick={() => {
+              if (q.type === 'piano') playPianoNote(q.freq);
+              else if (q.type === 'violin') playViolin(q.freq);
+              else if (q.type === 'flute') playFlute(q.freq);
+              else playPianoNote(q.freq);
+            }} className="w-32 h-32 bg-red-500 text-white rounded-full shadow-xl flex items-center justify-center mb-12 hover:scale-105 active:scale-95 transition-all outline-none"><Volume2 className="w-16 h-16" /></button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+              {INSTRUMENTS_DATA.map(opt => (
+                <button key={opt.name} onClick={() => {
+                  if (opt.name === q.name) { setFeedback('correct'); playCorrect(); setScore(s => s + 1); setTimeout(() => { setFeedback(null); advanceModule(); }, 1500); }
+                  else { setFeedback('incorrect'); playIncorrect(); setTimeout(() => setFeedback(null), 1500); }
+                }} disabled={feedback !== null} className="py-4 bg-white border-2 border-slate-200 rounded-2xl font-bold text-xl text-slate-700 hover:border-red-400 hover:text-red-500 transition-all shadow-sm">
+                  {opt.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderResults = () => {
+    const percentage = Math.round((score / quizQuestions.length) * 100);
+    let rank = '';
+    let icon = null;
+
+    if (percentage === 100) { rank = 'Mestre da Música'; icon = <Trophy className="w-24 h-24 text-amber-500" />; }
+    else if (percentage >= 70) { rank = 'Músico Talento'; icon = <Star className="w-24 h-24 text-indigo-500 fill-indigo-500" />; }
+    else { rank = 'Aprendiz Dedicado'; icon = <Music className="w-24 h-24 text-slate-400" />; }
+
+    return (
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center text-center p-8 bg-white rounded-3xl shadow-xl border-2 border-slate-100 max-w-md mx-auto">
+        <div className="mb-6">{icon}</div>
+        <h2 className="text-4xl font-bold text-slate-800 mb-2">Quiz Terminado!</h2>
+        <p className="text-xl text-slate-600 mb-8 font-medium">Nível: <span className="font-bold text-indigo-600">{rank}</span></p>
+        
+        <div className="w-full bg-slate-50 rounded-2xl p-6 mb-8 flex justify-around border-2 border-slate-100">
+          <div>
+            <span className="block text-sm text-slate-400 uppercase font-bold tracking-wider">Pontos</span>
+            <span className="text-4xl font-black text-indigo-600">{score}</span>
+          </div>
+          <div>
+            <span className="block text-sm text-slate-400 uppercase font-bold tracking-wider">Acerto</span>
+            <span className="text-4xl font-black text-emerald-500">{percentage}%</span>
+          </div>
+        </div>
+
+        <button onClick={() => setView('home')} className="w-full py-4 bg-indigo-500 text-white rounded-2xl font-bold text-lg shadow-lg hover:bg-indigo-600 transition-all mb-4 hover:shadow-indigo-200">
+          Voltar ao Início
+        </button>
+        <button onClick={() => setView('quiz')} className="text-indigo-600 font-bold hover:text-indigo-700 transition-colors">Tentar de novo</button>
+      </motion.div>
+    );
+  };
   const renderSigns = () => (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center w-full max-w-3xl mx-auto px-4 py-8">
       <div className="w-full flex justify-between items-center mb-8">
@@ -758,6 +912,8 @@ export default function App() {
         {view === 'rhythm' && renderRhythm()}
         {view === 'compose' && renderCompose()}
         {view === 'instruments' && renderInstruments()}
+        {view === 'quiz' && renderQuiz()}
+        {view === 'results' && renderResults()}
       </main>
 
       <AnimatePresence>
