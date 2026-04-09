@@ -4,6 +4,7 @@ export interface StaffNote {
   y: number;
   accidental?: 'sharp' | 'flat' | null;
   x?: number;
+  color?: string;
 }
 
 interface StaffProps {
@@ -62,7 +63,7 @@ export function Staff({ clef, notes = [] }: StaffProps) {
                 cy={note.y} 
                 rx="11" 
                 ry="8" 
-                fill="#0f172a" 
+                fill={note.color || "#0f172a"} 
                 transform={`rotate(-15 ${cx} ${note.y})`} 
               />
               

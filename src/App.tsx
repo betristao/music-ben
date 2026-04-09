@@ -3,9 +3,9 @@ import { Play, Check, X, Star, Music, ArrowRight, Home, Trophy, ArrowUp, ArrowDo
 import { motion, AnimatePresence } from 'motion/react';
 import { initAudio, playPianoNote, playChord, playMelody, playCorrect, playIncorrect, playTick, playViolin, playFlute } from './lib/audio';
 import { Staff } from './components/Staff';
-import { TREBLE_NOTES, BASS_NOTES, ACCIDENTALS, INTERVALS, CHORDS, CADENCES, SIGNS, MELODIES, NoteDef, ALL_NOTES, RHYTHM_PATTERNS, INSTRUMENTS_DATA } from './data/modules';
+import { TREBLE_NOTES, BASS_NOTES, ACCIDENTALS, INTERVALS, CHORDS, CADENCES, SIGNS, MELODIES, NoteDef, ALL_NOTES, RHYTHM_PATTERNS, INSTRUMENTS_DATA, PITCH_DATA } from './data/modules';
 
-type View = 'home' | 'treble' | 'bass' | 'accidentals' | 'intervals' | 'chords' | 'cadences' | 'dictation_sound' | 'dictation_melody' | 'signs' | 'rhythm' | 'compose' | 'instruments' | 'quiz' | 'results';
+type View = 'home' | 'treble' | 'bass' | 'accidentals' | 'intervals' | 'chords' | 'cadences' | 'dictation_sound' | 'dictation_melody' | 'signs' | 'rhythm' | 'compose' | 'instruments' | 'quiz' | 'results' | 'pitch';
 
 export default function App() {
   const [view, setView] = useState<View>('home');
@@ -25,6 +25,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : {};
   });
   const [showTrophy, setShowTrophy] = useState<string | null>(null);
+  const [showLesson, setShowLesson] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('musical-kids-progress', JSON.stringify(progress));
@@ -33,6 +34,22 @@ export default function App() {
   const [isRecordingRhythm, setIsRecordingRhythm] = useState(false);
   const [rhythmStartTime, setRhythmStartTime] = useState(0);
   const [recordedClicks, setRecordedClicks] = useState<number[]>([]);
+
+  const getNoteColor = (y: number) => {
+    // Standard pedagogical coloring (e.g. Boomwhackers/Chroma-notes)
+    // Adjusted for the y scale (steps of 10)
+    const normalizedY = ((y % 70) + 70) % 70; 
+    const colors: { [key: number]: string } = {
+      50: '#ef4444', // Dó (Red)
+      40: '#f97316', // Ré (Orange)
+      30: '#eab308', // Mi (Yellow)
+      20: '#22c55e', // Fá (Green)
+      10: '#0ea5e9', // Sol (Blue)
+      0: '#6366f1',  // Lá (Indigo)
+      60: '#a855f7', // Si (Purple)
+    };
+    return colors[y % 70] || '#0f172a';
+  };
 
   useEffect(() => {
     const handleInteraction = () => initAudio();
@@ -55,6 +72,9 @@ export default function App() {
     setView(v);
     setCurrentIndex(0);
     resetState();
+    if (v !== 'home' && v !== 'results' && v !== 'compose' && v !== 'signs') {
+      setShowLesson(true);
+    }
   };
 
   const handleVerifyNotePlacement = (correctNote: NoteDef) => {
@@ -117,6 +137,7 @@ export default function App() {
     else if (view === 'rhythm') max = RHYTHM_PATTERNS.length;
     else if (view === 'instruments') max = INSTRUMENTS_DATA.length;
     else if (view === 'quiz') max = quizQuestions.length;
+    else if (view === 'pitch') max = PITCH_DATA.length;
 
     if (currentIndex < max - 1) {
       setCurrentIndex(i => i + 1);
@@ -153,6 +174,23 @@ export default function App() {
       
       <div className="w-full max-w-4xl mt-8 space-y-8">
         
+        <div>
+          <h3 className="text-xl font-bold text-slate-500 mb-4 text-left border-b-2 border-slate-200 pb-2">Nível 0: Primeiros Passos</h3>
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+            <button onClick={() => startModule('pitch')} className="btn-module bg-orange-100 border-2 border-orange-200 !text-orange-700 hover:bg-orange-200 !flex-row gap-6 relative">
+              {progress['pitch'] && <Check className="absolute top-2 right-2 w-6 h-6 text-white bg-emerald-500 rounded-full p-1" />}
+              <div className="flex -space-x-2">
+                <span className="text-4xl">🐦</span>
+                <span className="text-4xl transform translate-y-2">🐻</span>
+              </div>
+              <div className="text-left">
+                <span className="font-bold text-xl block">Sons Agudos e Graves</span>
+                <span className="text-sm opacity-80">Aprende a distinguir o "fininho" do "grosso".</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <div>
           <h3 className="text-xl font-bold text-slate-500 mb-4 text-left border-b-2 border-slate-200 pb-2">Nível 1: Leitura</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -383,7 +421,7 @@ export default function App() {
         )}
 
         <div className="w-full relative">
-          <Staff clef={clef} notes={[{ y: userY, accidental: userAccidental }]} />
+          <Staff clef={clef} notes={[{ y: userY, accidental: userAccidental, color: getNoteColor(userY) }]} />
           
           <AnimatePresence>
             {feedback && (
@@ -485,7 +523,7 @@ export default function App() {
             </button>
           ) : (
             <div className="w-full relative">
-              <Staff clef="treble" notes={currentItem.notes} />
+              <Staff clef="treble" notes={currentItem.notes.map((n: any) => ({ ...n, color: getNoteColor(n.y) }))} />
               <button onClick={playCurrent} className="absolute -bottom-4 right-4 w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-indigo-600">
                 <Volume2 className="w-6 h-6" />
               </button>
@@ -781,7 +819,7 @@ export default function App() {
           <div className="w-full flex flex-col items-center">
             <h3 className="text-2xl font-bold text-slate-800 mb-6 font-sans">Coloca a nota: <span className="text-indigo-600">{q.name}</span></h3>
             <div className="w-full relative mb-8">
-              <Staff clef={q.clef} notes={[{ y: userY, accidental: userAccidental }]} />
+              <Staff clef={q.clef} notes={[{ y: userY, accidental: userAccidental, color: getNoteColor(userY) }]} />
               <AnimatePresence>{feedback && (
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
                   {feedback === 'correct' ? <Check className="w-20 h-20 text-emerald-500 bg-white rounded-full shadow-lg" /> : <X className="w-20 h-20 text-rose-500 bg-white rounded-full shadow-lg" />}
@@ -802,7 +840,7 @@ export default function App() {
           <div className="w-full flex flex-col items-center">
             <h3 className="text-xl font-semibold text-slate-800 mb-6">{q.category}: O que vês/ouves?</h3>
             <div className="w-full relative mb-8">
-              <Staff clef="treble" notes={q.notes} />
+              <Staff clef="treble" notes={q.notes.map((n: any) => ({ ...n, color: getNoteColor(n.y) }))} />
               <button onClick={() => playChord(q.freqs)} className="absolute -bottom-4 right-4 w-12 h-12 bg-indigo-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-600 active:scale-95 transition-all"><Volume2 /></button>
               <AnimatePresence>{feedback && (
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
@@ -878,6 +916,95 @@ export default function App() {
       </motion.div>
     );
   };
+  const renderPitch = () => {
+    const currentItem = PITCH_DATA[currentIndex];
+    if (!currentItem) return null;
+
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center w-full max-w-2xl mx-auto px-4 py-8">
+        <div className="w-full flex justify-between items-center mb-8">
+          <button onClick={() => setView('home')} className="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-colors"><Home className="w-6 h-6" /></button>
+          <h2 className="text-2xl font-bold text-slate-800">Grave ou Agudo?</h2>
+          <div className="w-10"></div>
+        </div>
+
+        <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-slate-100 mb-8 text-center w-full">
+          <p className="text-lg text-slate-700 font-medium italic">"Os pássaros cantam agudo, os ursos roncam grave!"</p>
+        </div>
+
+        <button onClick={() => playPianoNote(currentItem.freq)} className="w-32 h-32 bg-orange-500 rounded-full flex items-center justify-center text-white shadow-xl hover:bg-orange-600 hover:scale-105 transition-all mb-12">
+          <Volume2 className="w-16 h-16" />
+        </button>
+
+        <div className="grid grid-cols-2 gap-8 w-full">
+          {['low', 'high'].map(type => (
+            <button
+              key={type}
+              onClick={() => {
+                if (type === currentItem.type) {
+                  setFeedback('correct'); playCorrect();
+                  setTimeout(() => { setFeedback(null); advanceModule(); }, 2000);
+                } else {
+                  setFeedback('incorrect'); playIncorrect();
+                  setTimeout(() => setFeedback(null), 1500);
+                }
+              }}
+              disabled={feedback !== null}
+              className={`flex flex-col items-center gap-4 p-8 bg-white border-4 rounded-3xl transition-all shadow-sm ${
+                type === 'low' ? 'border-amber-200 hover:border-amber-500' : 'border-sky-200 hover:border-sky-500'
+              }`}
+            >
+              <span className="text-6xl">{type === 'low' ? '🐻' : '🐦'}</span>
+              <span className="font-bold text-xl text-slate-700 uppercase tracking-wide">
+                {type === 'low' ? 'Grave' : 'Agudo'}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <AnimatePresence>
+          {feedback && (
+            <motion.div 
+              initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0, opacity: 0 }}
+              className={`mt-8 flex items-center justify-center w-20 h-20 rounded-full shadow-lg ${
+                feedback === 'correct' ? 'bg-emerald-400 text-white' : 'bg-rose-400 text-white'
+              }`}
+            >
+              {feedback === 'correct' ? <Check className="w-10 h-10" /> : <X className="w-10 h-10" />}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    );
+  };
+
+  const renderLesson = () => {
+    const lessonData: { [key: string]: { title: string, content: string, icon: string, color: string } } = {
+      pitch: { title: 'Sons Agudos e Graves', content: 'Os sons podem ser Agudos (altos e fininhos como um pássaro) ou Graves (baixos e grossos como um urso).', icon: '🐦🐻', color: 'orange' },
+      treble: { title: 'A Clave de Sol', content: 'Usada para sons agudos. O desenho começa na 2ª linha, que é a nota SOL.', icon: '𝄞', color: 'sky' },
+      bass: { title: 'A Clave de Fá', content: 'Usada para sons graves. Os dois pontos rodeiam a 4ª linha, que é a nota FÁ.', icon: '𝄢', color: 'emerald' },
+      accidentals: { title: 'Acidentes', content: 'O Sustenido (♯) sobe um bocadinho a nota. O Bemol (♭) desce um bocadinho.', icon: '♯♭', color: 'amber' },
+      rhythm: { title: 'O Ritmo', content: 'O ritmo é o coração da música! É como o bater do coração ou o andar de um relógio.', icon: '⏱️', color: 'orange' },
+      instruments: { title: 'Timbre', content: 'Cada instrumento tem a sua "voz". Conseguirias distinguir o teu pai da tua mãe apenas pela voz? Na música é igual!', icon: '🎺', color: 'red' },
+    };
+
+    const l = lessonData[view] || { title: 'Vamos Praticar?', content: 'Prepara os teus ouvidos e a tua atenção!', icon: '✨', color: 'indigo' };
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col items-center text-center p-8 bg-white rounded-3xl shadow-xl border-4 border-slate-50 max-w-lg mx-auto mt-12">
+        <div className={`w-24 h-24 bg-${l.color}-100 rounded-full flex items-center justify-center text-5xl mb-6`}>{l.icon}</div>
+        <h2 className="text-3xl font-bold text-slate-800 mb-4">{l.title}</h2>
+        <p className="text-xl text-slate-600 mb-10 leading-relaxed font-medium">{l.content}</p>
+        <button 
+          onClick={() => setShowLesson(false)}
+          className={`px-12 py-4 bg-${l.color}-500 text-white rounded-2xl font-bold text-xl shadow-lg hover:bg-opacity-90 transition-all outline-none`}
+        >
+          Vamos Começar!
+        </button>
+      </motion.div>
+    );
+  };
+
   const renderSigns = () => (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center w-full max-w-3xl mx-auto px-4 py-8">
       <div className="w-full flex justify-between items-center mb-8">
@@ -905,15 +1032,35 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-indigo-100">
       <main className="container mx-auto max-w-4xl pt-8 pb-16">
-        {view === 'home' && renderHome()}
-        {(view === 'treble' || view === 'bass' || view === 'accidentals' || view === 'dictation_sound') && renderNotePlacement()}
-        {(view === 'intervals' || view === 'chords' || view === 'cadences' || view === 'dictation_melody') && renderMultipleChoice()}
-        {view === 'signs' && renderSigns()}
-        {view === 'rhythm' && renderRhythm()}
-        {view === 'compose' && renderCompose()}
-        {view === 'instruments' && renderInstruments()}
-        {view === 'quiz' && renderQuiz()}
-        {view === 'results' && renderResults()}
+        {showLesson ? renderLesson() : (
+          <>
+            {view === 'home' && renderHome()}
+            {(view === 'treble' || view === 'bass' || view === 'accidentals' || view === 'dictation_sound') && renderNotePlacement()}
+            {(view === 'intervals' || view === 'chords' || view === 'cadences' || view === 'dictation_melody') && renderMultipleChoice()}
+            {view === 'signs' && renderSigns()}
+            {view === 'rhythm' && renderRhythm()}
+            {view === 'compose' && renderCompose()}
+            {view === 'instruments' && renderInstruments()}
+            {view === 'quiz' && renderQuiz()}
+            {view === 'results' && renderResults()}
+            {view === 'pitch' && renderPitch()}
+          </>
+        )}
+        
+        {/* Mascot Message */}
+        {!showLesson && view !== 'home' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            className="mt-12 p-4 bg-indigo-50 rounded-2xl border-2 border-indigo-100 flex items-center gap-4 max-w-sm mx-auto"
+          >
+            <div className="text-3xl">🐱</div>
+            <div className="text-sm text-indigo-800 font-medium">
+              {feedback === 'correct' ? "Boa! Estás a tornar-te num prodígio!" : 
+               feedback === 'incorrect' ? "Quase lá! Tenta colocar a nota com cuidado." :
+               "Faz o teu melhor, eu estou aqui para ajudar!"}
+            </div>
+          </motion.div>
+        )}
       </main>
 
       <AnimatePresence>

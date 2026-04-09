@@ -151,3 +151,10 @@ export const INSTRUMENTS_DATA = [
   { name: 'Violino', type: 'violin', freq: 440.00, hint: 'Um instrumento de cordas tocado com um arco.' },
   { name: 'Flauta', type: 'flute', freq: 523.25, hint: 'Um instrumento de sopro feito de metal ou madeira.' }
 ];
+
+export const PITCH_DATA = [
+  { name: 'Sol Agudo', freq: 783.99, type: 'high', icon: '🐦', label: 'Agudo (Fininho)' },
+  { name: 'Dó Grave', freq: 130.81, type: 'low', icon: '🐻', label: 'Grave (Grosso)' },
+  { name: 'Mi Agudo', freq: 659.25, type: 'high', icon: '🐦', label: 'Agudo (Fininho)' },
+  { name: 'Lá Grave', freq: 220.00, type: 'low', icon: '🐻', label: 'Grave (Grosso)' }
+];
