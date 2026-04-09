@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@layer components {
+  .btn-module {
+    @apply flex flex-col items-center justify-center p-8 rounded-3xl text-white shadow-md hover:shadow-xl transition-all transform hover:-translate-y-1 active:translate-y-0;
+  }
+}
