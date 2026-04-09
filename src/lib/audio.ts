@@ -48,6 +48,76 @@ export function playPianoNote(frequency: number, duration = 2, startTimeOffset =
   osc2.stop(startTime + duration);
 }
 
+export function playViolin(frequency: number, duration = 2, startTimeOffset = 0) {
+  if (!audioCtx) return;
+  const startTime = audioCtx.currentTime + startTimeOffset;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(frequency, startTime);
+  
+  // Vibrato
+  const lfo = audioCtx.createOscillator();
+  const lfoGain = audioCtx.createGain();
+  lfo.frequency.value = 5;
+  lfoGain.gain.value = 5;
+  lfo.connect(lfoGain);
+  lfoGain.connect(osc.frequency);
+  lfo.start(startTime);
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(2000, startTime);
+
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(0.5, startTime + 0.1);
+  gain.gain.linearRampToValueAtTime(0.4, startTime + duration * 0.8);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(startTime);
+  osc.stop(startTime + duration);
+  lfo.stop(startTime + duration);
+}
+
+export function playFlute(frequency: number, duration = 1.5, startTimeOffset = 0) {
+  if (!audioCtx) return;
+  const startTime = audioCtx.currentTime + startTimeOffset;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(frequency, startTime);
+  
+  // Breathiness
+  const bufferSize = audioCtx.sampleRate * 0.1;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+  const noiseGain = audioCtx.createGain();
+  noiseGain.gain.setValueAtTime(0.1, startTime);
+  noiseGain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.1);
+  noise.connect(noiseGain);
+  noiseGain.connect(audioCtx.destination);
+
+  gain.gain.setValueAtTime(0, startTime);
+  gain.gain.linearRampToValueAtTime(0.6, startTime + 0.1);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(startTime);
+  noise.start(startTime);
+  osc.stop(startTime + duration);
+}
+
 export function playChord(frequencies: number[], duration = 2) {
   frequencies.forEach(freq => playPianoNote(freq, duration, 0));
 }
@@ -76,4 +146,23 @@ export function playIncorrect() {
   if (!audioCtx) return;
   playPianoNote(NOTES.G3, 0.5, 0);
   playPianoNote(NOTES.C3, 0.5, 0.15);
+}
+export function playTick(startTimeOffset = 0) {
+  if (!audioCtx) return;
+  const startTime = audioCtx.currentTime + startTimeOffset;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(1000, startTime);
+  osc.frequency.exponentialRampToValueAtTime(1, startTime + 0.05);
+
+  gain.gain.setValueAtTime(0.5, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.05);
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(startTime);
+  osc.stop(startTime + 0.05);
 }

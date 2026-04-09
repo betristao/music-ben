@@ -138,3 +138,16 @@ export const MELODIES = [
   { name: 'Dó - Mi - Sol - Dó(ag)', notes: [{y: 120, x: 60}, {y: 100, x: 90}, {y: 80, x: 120}, {y: 50, x: 150}], freqs: [261.63, 329.63, 392.00, 523.25] },
   { name: 'Ré - Fá - Lá', notes: [{y: 110, x: 70}, {y: 90, x: 100}, {y: 70, x: 130}], freqs: [293.66, 349.23, 440.00] },
 ];
+
+export const RHYTHM_PATTERNS = [
+  { name: 'Pulsação Básica', pattern: [0, 1, 2, 3], total: 4, hint: 'Clica em cada batida (1, 2, 3, 4).' },
+  { name: 'Semínimas e Pausas', pattern: [0, 2], total: 4, hint: 'Clica no 1 e no 3. O 2 e o 4 são silêncio!' },
+  { name: 'Ritmo de Marcha', pattern: [0, 0.5, 1, 1.5, 2], total: 3, hint: 'Clica rápido! 1 e, 2 e, 3.' },
+  { name: 'Sincopa Simples', pattern: [0, 0.75, 1.5], total: 2, hint: 'Este é mais difícil!' }
+];
+
+export const INSTRUMENTS_DATA = [
+  { name: 'Piano', type: 'piano', freq: 261.63, hint: 'O instrumento rei, com teclas pretas e brancas.' },
+  { name: 'Violino', type: 'violin', freq: 440.00, hint: 'Um instrumento de cordas tocado com um arco.' },
+  { name: 'Flauta', type: 'flute', freq: 523.25, hint: 'Um instrumento de sopro feito de metal ou madeira.' }
+];
